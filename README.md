@@ -7,7 +7,7 @@ CSC2529 course project
 - [ ] Data preprocessing (normalization)
 - [ ] create dataloader for image pairs
 - [ ] model architecture (feature extractor, reconstruction) and loss function
-- [ ] fusion module
+- [ ] fusion strategy
 
 ### Phase 2
 - [ ] training and test script
