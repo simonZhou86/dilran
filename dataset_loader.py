@@ -66,7 +66,7 @@ def load_data(file, target_dir, test_num):
     for ind in test_ind:
         test.append(file[ind])
     
-    print(test)
+    #print(test)
     
     HEIGHT = 256
     WIDTH = 256
