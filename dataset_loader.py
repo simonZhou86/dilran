@@ -1,6 +1,6 @@
 # Get dataloader for MRI-CT data
 
-# Author: Simon Zhou, last modify Nov. 10, 2022
+# Author: Simon Zhou, last modify Nov. 11, 2022
 
 '''
 Change log: file created, implement dataset loader
