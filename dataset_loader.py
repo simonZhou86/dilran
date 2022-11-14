@@ -3,8 +3,8 @@
 # Author: Simon Zhou, last modify Nov. 11, 2022
 
 '''
-Change log: file created, implement dataset loader
-
+Change log: 
+- Simon: file created, implement dataset loader
 '''
 
 import os
