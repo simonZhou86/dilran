@@ -9,8 +9,24 @@ Change log:
 
 import torch
 import torch.nn as nn
+from torchvision.models import vgg16_bn
 import numpy as np
 from skimage import feature
+
+class PercepHook:
+    '''
+    Pytorch forward hook for computing the perceptual loss
+    without modifying the original VGG16 network
+    '''
+    def __init__(self, module):
+        self.features = None
+        self.hook = module.register_forward_hook(self.on)
+
+    def on(self, module, inputs, outputs):
+        self.features = outputs
+
+    def close(self):
+        self.hook.remove()
 
 
 def edge_detector(img, sigma):
@@ -34,15 +50,17 @@ def l2_norm():
     return
 
 
-def gradient_loss():
+def gradient_loss(fused_img, input_img, device):
     '''
-    image gradient loss
+    compute image gradient loss between fused image and input image
     '''
-    return
+
+    return None
 
 
-def percep_loss():
+class percep_loss(nn.Module):
     '''
-    perceptual loss
+    compute perceptual loss between fused image and input image
     '''
-    return
+    def __init__(self) -> None:
+        super().__init__()
