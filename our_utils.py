@@ -80,7 +80,8 @@ class percep_loss(nn.Module):
         for param in self.vgg.parameters():
             param.requires_grad = False
         
-        # remove maxpooling layer
+        # remove maxpooling layer and relu layer
+        # TODO:check this part on whether we want relu or not
         bns = [i - 2 for i, m in enumerate(self.vgg) if isinstance(m, nn.MaxPool2d)]
 
         # register forward hook
@@ -103,3 +104,10 @@ class percep_loss(nn.Module):
             loss += self.loss(input_features[i], target_features[i]) # mse loss
         
         return loss
+
+
+def compute_perp_loss():
+    '''
+    you can use the perp_loss class to compute perceptual loss
+    '''
+    return None
