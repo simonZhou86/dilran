@@ -1,6 +1,6 @@
 # helper functions for the project
 
-# Author: Simon Zhou, last modify Nov. 13, 2022
+# Author: Simon Zhou, last modify Nov. 15, 2022
 
 '''
 Change log: 
