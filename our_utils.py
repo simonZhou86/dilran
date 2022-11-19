@@ -73,7 +73,7 @@ def gradient_loss(fused_img, input_img, device):
     return None
 
 
-class percep_loss(nn.Module):
+class Percep_loss(nn.Module):
     '''
     compute perceptual loss between fused image and input image
     '''
@@ -83,7 +83,7 @@ class percep_loss(nn.Module):
         int represents single layer perceptual loss
         list represents multiple layers perceptual loss
         '''
-        super(percep_loss).__init__()
+        super(Percep_loss).__init__()
         self.block_idx = block_idx
         self.device = device
         # load vgg16_bn model features
