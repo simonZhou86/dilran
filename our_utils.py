@@ -6,6 +6,7 @@
 Change log: 
 - Simon: file created, implement edge detector
 - Simon: create helper function for perceptual loss
+- Reacher: create fusion strategy function
 '''
 
 import torch
@@ -111,3 +112,53 @@ def compute_perp_loss():
     you can use the perp_loss class to compute perceptual loss
     '''
     return None
+
+
+def l1_norm(matrix):
+    return torch.abs(matrix).sum()
+
+
+def fusion_strategy(f1, f2, strategy="average"):
+    """
+    f1: the extracted features of images 1
+    f2: the extracted features of images 2
+    strategy: 6 fusion strategy, including:
+    addition, average, FER, L1NW, AL1NW, FL1N
+    addition strategy
+    average strategy
+    FER strategy: Feature Energy Ratio strategy
+    L1NW strategy: L1-Norm Weight Strategy
+    AL1NW strategy: Average L1-Norm Weight Strategy
+    FL1N strategy: Feature L1-Norm Strategy
+
+    Note:
+    If the original image is PET or SPECT modal,
+    it should be converted into YCbCr data, including Y1, Cb and Cr.
+    """
+
+    # The fused feature
+    fused = np.zeros_like(f1)
+    if strategy == "addition":
+        fused = f1 + f2
+    elif strategy == "average":
+        fused = (f1 + f2) / 2
+    elif strategy == "FER":
+        k1 = f1 ** 2 / (f1 ** 2 + f2 ** 2)
+        k2 = f2 ** 2 / (f1 ** 2 + f2 ** 2)
+        fused = k1 * f1 + k2 * f2
+    elif strategy == "L1NW":
+        l1 = l1_norm(f1)
+        l2 = l1_norm(f2)
+        fused = l1 * f1 + l2 * f2
+    elif strategy == "AL1NW":
+        p1 = l1_norm(f1) / 2
+        p2 = l1_norm(f2) / 2
+        fused = p1 * f1 + p2 * f2
+    elif strategy == "FL1N":
+        l1 = l1_norm(f1)
+        l2 = l1_norm(f2)
+        w1 = l1 / (l1 + l2)
+        w2 = l2 / (l1 + l2)
+        fused = w1 * f1 + w2 * f2
+    # Need to do reconstruction on "fused"
+    return fused
