@@ -184,3 +184,19 @@ class Recon(nn.Module):
         x = self.recon_conv(x)
         return x # should get shape [b, 1, 256, 256]
         
+
+class fullModel(nn.Module):
+    '''
+    Feature extractor + reconstruction
+    a full model pipeline
+    '''
+    def __init__(self):
+        super(fullModel).__init__()
+    
+        self.fe = MSFuNet()
+        self.recon = Recon()
+    
+    def forward(self, x):
+        deep_fe = self.fe(x)
+        recon_img = self.recon(deep_fe)
+        return recon_img
