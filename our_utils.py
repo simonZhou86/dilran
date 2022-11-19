@@ -7,6 +7,7 @@ Change log:
 - Simon: file created, implement edge detector
 - Simon: create helper function for perceptual loss
 - Reacher: create fusion strategy function
+- Simon: add random seed func for seeding
 '''
 
 import torch
@@ -14,6 +15,18 @@ import torch.nn as nn
 from torchvision.models import vgg16_bn
 import numpy as np
 from skimage import feature
+import random
+
+def random_seed(seed_value, use_cuda):
+    np.random.seed(seed_value) # cpu vars
+    torch.manual_seed(seed_value) # cpu  vars
+    random.seed(seed_value) # Python
+    if use_cuda:
+        torch.cuda.manual_seed(seed_value)
+        torch.cuda.manual_seed_all(seed_value) # gpu vars
+        torch.backends.cudnn.deterministic = True  #needed
+        torch.backends.cudnn.benchmark = False
+
 
 class PercepHook:
     '''
