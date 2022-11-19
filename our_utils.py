@@ -123,7 +123,7 @@ def fusion_strategy(f1, f2, strategy="average"):
     f1: the extracted features of images 1
     f2: the extracted features of images 2
     strategy: 6 fusion strategy, including:
-    addition, average, FER, L1NW, AL1NW, FL1N
+    "addition", "average", "FER", "L1NW", "AL1NW", "FL1N"
     addition strategy
     average strategy
     FER strategy: Feature Energy Ratio strategy

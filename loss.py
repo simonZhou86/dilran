@@ -13,13 +13,13 @@ import torch
 
 def l1_loss(predicted, target):
     """
-    To compute L1 loss
+    To compute L1 loss using predicted and target
     """
     return torch.abs(predicted - target).mean()
 
 
 def mse_loss(predicted, target):
     """
-    To compute L2 loss
+    To compute L2 loss using predicted and target
     """
     return torch.pow((predicted - target), 2).mean()
