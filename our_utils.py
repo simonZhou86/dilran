@@ -128,6 +128,9 @@ def compute_perp_loss():
 
 
 def l1_norm(matrix):
+    """
+    Calculate the L1 norm for some fusion strategies
+    """
     return torch.abs(matrix).sum()
 
 

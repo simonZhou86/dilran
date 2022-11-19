@@ -21,14 +21,14 @@ def l1_loss(predicted, target):
 
 def mse_loss(predicted, target):
     """
-    To compute L2 loss using predicted and target
+    To compute L2 loss between predicted and target
     """
     return torch.pow((predicted - target), 2).mean()
 
 
 def gradient_loss(predicted, target):
     """
-    compute image gradient loss between fused image and input image
+    compute image gradient loss between predicted and target
     """
     grad_p = np.gradient(predicted)
     grad_t = np.gradient(target)
@@ -36,6 +36,9 @@ def gradient_loss(predicted, target):
 
 
 def perceptual_loss(predicted, target, block_idx, device):
+    """
+    compute perceptual loss between predicted and target
+    """
     p_loss = Percep_loss(block_idx, device)
     return p_loss(predicted, target)
 
