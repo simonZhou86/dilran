@@ -57,7 +57,7 @@ print("train loader length: ", len(train_loader), " val loder length: ", len(val
 ############################################################
 
 ############ loading model #####################
-model = MSFuNet().to(device) #TODO: Need to change
+model = fullModel().to(device)
 optimizer = optim.Adam(model.parameters(), lr=opt.lr)
 
 if opt.lr_decay:

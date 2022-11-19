@@ -9,7 +9,7 @@ Change log:
 - Landy: create feature extractor and DILRAN
 - Simon: revise some writing style of module configs (e.g., replace = True),
 refine the FE module, add recon module
-- 
+- Simon: create full model pipeline
 '''
 
 
