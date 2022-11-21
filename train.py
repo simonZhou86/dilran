@@ -108,6 +108,7 @@ for i in range(t):
         # back propagate and update weights
         loss.backward()
         optimizer.step()
+        wandb.log({"loss": loss})
     # lr decay
     if opt.lr_decay:
         stepLR.step()
