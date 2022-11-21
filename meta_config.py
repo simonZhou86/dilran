@@ -12,3 +12,10 @@ test_data_dir = "C:/Users/16137/Desktop/Master/CSC2529/project_code/testset"
 
 test_num = 20
 train_val_ratio = 0.8
+
+# lambdas in loss function
+lambda1 = 1
+lambda2 = 1
+
+# vgg block for perceptual loss
+block_idx = [0,1,2]

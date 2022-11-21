@@ -12,3 +12,4 @@ CSC2529 course project
 
 ### Phase 2
 - [ ] training and test script
+- [ ] Evaluation Metric
