@@ -48,12 +48,12 @@ class grad_loss(nn.Module):
         if self.vis:
             return grad_xx, grad_xy, grad_yx, grad_yy
         
-        # total image gradient, in x and y direction
+        # total image gradient, in dx and dy direction for image X and Y
         gradientX = torch.abs(grad_xx) + torch.abs(grad_xy)
         gradientY = torch.abs(grad_yx) + torch.abs(grad_yy)
         
-        # squared frobenius norm (||.||_F^2)
-        grad_f_loss = torch.power(torch.norm((gradientX - gradientY), p = "fro"), 2)
+        # mean squared frobenius norm (||.||_F^2)
+        grad_f_loss = torch.mean(torch.pow(torch.norm((gradientX - gradientY), p = "fro"), 2))
         return grad_f_loss
 
 def l1_loss(predicted, target):
