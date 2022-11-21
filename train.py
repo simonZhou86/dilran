@@ -62,6 +62,12 @@ train_loader, val_loader = get_loader(train_ct, train_mri, c.train_val_ratio, op
 print("train loader length: ", len(train_loader), " val loder length: ", len(val_loader))
 ############################################################
 
+############ making dirs########################
+model_dir = os.path.join(c.res_dir), "pretrained_models"
+if not os.path.exists(model_dir):
+    os.mkdir(model_dir)
+################################################
+
 ############ loading model #####################
 model = fullModel().to(device)
 optimizer = optim.Adam(model.parameters(), lr=opt.lr)
@@ -82,6 +88,8 @@ wandb.config = {
 train_loss = []
 val_loss = []
 t = trange(opt.epochs, desc='Training progress...', leave=True)
+lowest_val_loss = int(1e9)
+
 for i in range(t):
     print("new epoch {} starts!".format(i))
     # clear gradient in model
@@ -124,4 +132,9 @@ for i in range(t):
     val_loss.append(ave_val_loss)
     print("epoch {}, validation loss is: {}".format(i), ave_val_loss)
 
+    # save model
+    if val_loss < lowest_val_loss:
+        torch.save(model.state_dict(), model_dir)
+        lowest_val_loss = val_loss
+    print("model is saved in epoch {}".format(i))
 ########################################
