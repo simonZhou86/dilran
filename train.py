@@ -11,6 +11,7 @@ import argparse
 import os
 import sys
 sys.path.append("../")
+from tqdm import trange
 
 import numpy as np
 import torch
@@ -21,6 +22,7 @@ import meta_config as c
 from model import *
 from our_utils import *
 from dataset_loader import *
+from loss import *
 
 import wandb
 
@@ -52,9 +54,19 @@ train_ct, train_mri, test_ct, test_mri = load_data(ct, target_dir, c.test_num)
 torch.save(test_ct, os.path.join(c.test_data_dir, "ct_test.pt"))
 torch.save(test_mri, os.path.join(c.test_data_dir, "mri_test.pt"))
 #print(train_ct.shape, train_mri.shape, test_ct.shape, test_mri.shape)
+
+train_total = torch.cat((train_ct, train_mri), dim = 0)
+
+# these loaders return index, not the actual image 
 train_loader, val_loader = get_loader(train_ct, train_mri, c.train_val_ratio, opt.batch_size)
 print("train loader length: ", len(train_loader), " val loder length: ", len(val_loader))
 ############################################################
+
+############ making dirs########################
+model_dir = os.path.join(c.res_dir), "pretrained_models"
+if not os.path.exists(model_dir):
+    os.mkdir(model_dir)
+################################################
 
 ############ loading model #####################
 model = fullModel().to(device)
@@ -73,11 +85,56 @@ wandb.config = {
   "batch_size": opt.batch_size
 }
 
-loss = []
+train_loss = []
 val_loss = []
+t = trange(opt.epochs, desc='Training progress...', leave=True)
+lowest_val_loss = int(1e9)
 
-def train(): # maybe we do not need a func to train
+for i in range(t):
+    print("new epoch {} starts!".format(i))
+    # clear gradient in model
+    model.zero_grad()
+    loss = 0
+    # train model
+    model.train()
+    for j, batch_inx in enumerate(train_loader):
+        # clear gradient in optimizer
+        optimizer.zero_grad()
+        batch_idx = batch_idx.view(-1).long()
+        img = train_total[batch_idx]
+        img_out = model(img)
+        # compute loss
+        loss += loss_func(img_out, img, c.lambda1, c.lambda2, c.block_idx, device)
+        # back propagate and update weights
+        loss.backward()
+        optimizer.step()
+    # lr decay
+    if opt.lr_decay:
+        stepLR.step()
+    # store loss
+    ave_loss = loss.item() / len(train_loader)
+    train_loss.append(ave_loss)
+    print("epoch {}, training loss is: {}".format(i), ave_loss)
 
-    return loss, val_loss
+    # validation
+    val_loss = []
+    with torch.no_grad():
+        loss = 0
+        # eval model, unable update weights
+        model.eval()
+        for k, batch_idx in enumerate(val_loader):
+            batch_idx = batch_idx.view(-1).long()
+            val_img = train_total[batch_idx]
+            val_img_out = model()
+            loss += loss_func(img_out, img, c.lambda1, c.lambda2, c.block_idx, device)
 
+    ave_val_loss = loss.item() / len(val_loader)
+    val_loss.append(ave_val_loss)
+    print("epoch {}, validation loss is: {}".format(i), ave_val_loss)
+
+    # save model
+    if val_loss < lowest_val_loss:
+        torch.save(model.state_dict(), model_dir)
+        lowest_val_loss = val_loss
+    print("model is saved in epoch {}".format(i))
 ########################################

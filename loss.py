@@ -6,14 +6,56 @@
 Change log:
 - Reacher: file created, implement L1 loss and L2 loss function
 - Reacher: update image gradient calculation
+- Simon: update image gradient loss
 """
 
 import numpy as np
 import torch
+import torch.nn as nn
 from our_utils import Percep_loss
 from torchmetrics.functional import image_gradients
 from torchvision.transforms import transforms
+import torch.nn.functional as F
 
+
+class grad_loss(nn.Module):
+    '''
+    image gradient loss
+    '''
+    def __init__(self, vis = False, type = "sobel"):
+
+        super(grad_loss, self).__init__()
+        
+        # only use sobel filter now
+        if type == "sobel":
+            kernel_x = [[-1., 0., 1.], [-2., 0., 2.], [-1., 0., 1.]]
+            kernel_y = [[1., 2., 1.], [0., 0., 0.], [-1., -2., -1.]]
+        kernel_x = torch.FloatTensor(kernel_x).unsqueeze(0).unsqueeze(0)
+        kernel_y = torch.FloatTensor(kernel_y).unsqueeze(0).unsqueeze(0)
+        # do not want update these weights
+        self.weight_x = nn.Parameter(data=kernel_x, requires_grad=False)
+        self.weight_y = nn.Parameter(data=kernel_y, requires_grad=False)
+        
+        self.vis = vis
+    
+    def forward(self, x, y):
+        # conv2d to find image gradient in x direction and y direction
+        # of input image x and image y
+        grad_xx = F.conv2d(x, self.weight_x)
+        grad_xy = F.conv2d(x, self.weight_y)
+        grad_yx = F.conv2d(y, self.weight_x)
+        grad_yy = F.conv2d(y, self.weight_y)
+
+        if self.vis:
+            return grad_xx, grad_xy, grad_yx, grad_yy
+        
+        # total image gradient, in dx and dy direction for image X and Y
+        gradientX = torch.abs(grad_xx) + torch.abs(grad_xy)
+        gradientY = torch.abs(grad_yx) + torch.abs(grad_yy)
+        
+        # mean squared frobenius norm (||.||_F^2)
+        grad_f_loss = torch.mean(torch.pow(torch.norm((gradientX - gradientY), p = "fro"), 2))
+        return grad_f_loss
 
 def l1_loss(predicted, target):
     """
