@@ -27,7 +27,7 @@ from loss import *
 import wandb
 
 
-parser = argparse.ArgumentParser(description='parameteris for the training script')
+parser = argparse.ArgumentParser(description='parameters for the training script')
 parser.add_argument('--dataset', type=str, default="CT-MRI", help="which dataset to use, available option: CT-MRI, MRI-PET, MRI-SPECT")
 parser.add_argument('--batch_size', type=int, default=16, help='batch size for training')
 parser.add_argument('--epochs', type=int, default=100, help='number of epochs for training')
