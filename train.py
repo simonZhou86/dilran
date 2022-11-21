@@ -11,6 +11,7 @@ import argparse
 import os
 import sys
 sys.path.append("../")
+from tqdm import trange
 
 import numpy as np
 import torch
@@ -21,6 +22,7 @@ import meta_config as c
 from model import *
 from our_utils import *
 from dataset_loader import *
+from loss import *
 
 import wandb
 
@@ -52,6 +54,10 @@ train_ct, train_mri, test_ct, test_mri = load_data(ct, target_dir, c.test_num)
 torch.save(test_ct, os.path.join(c.test_data_dir, "ct_test.pt"))
 torch.save(test_mri, os.path.join(c.test_data_dir, "mri_test.pt"))
 #print(train_ct.shape, train_mri.shape, test_ct.shape, test_mri.shape)
+
+train_total = torch.cat((train_ct, train_mri), dim = 0)
+
+# these loaders return index, not the actual image 
 train_loader, val_loader = get_loader(train_ct, train_mri, c.train_val_ratio, opt.batch_size)
 print("train loader length: ", len(train_loader), " val loder length: ", len(val_loader))
 ############################################################
@@ -73,11 +79,30 @@ wandb.config = {
   "batch_size": opt.batch_size
 }
 
-loss = []
+train_loss = []
 val_loss = []
+t = trange(opt.epochs, desc='Training progress...', leave=True)
+for i in range(t):
+    print("new epoch {} starts!".format(i))
+    model.zero_grad()
+    loss = 0
+    model.train()
+    for j, batch_inx in enumerate(train_loader):
+        optimizer.zero_grad()
+        batch_idx = batch_idx.view(-1).long()
+        img = train_total[batch_idx]
+        img_out = model(img)
+        loss += loss_func(img_out, img, c.lambda1, c.lambda2, c.block_idx, device)
+        loss.backward()
+        optimizer.step()
+    
+    if opt.lr_decay:
+        stepLR.step()
 
-def train(): # maybe we do not need a func to train
+    ave_loss = loss.item() / len(train_loader)
+    train_loss.append(ave_loss)
 
-    return loss, val_loss
+    # validation
+    
 
 ########################################
