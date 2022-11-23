@@ -11,5 +11,6 @@ CSC2529 course project
 - Temporary Done
 
 ### Phase 2
-- [ ] training and test script
+- [x] training script
+- [ ] test script
 - [ ] Evaluation Metric
