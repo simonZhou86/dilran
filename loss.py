@@ -7,6 +7,7 @@ Change log:
 - Reacher: file created, implement L1 loss and L2 loss function
 - Reacher: update image gradient calculation
 - Simon: update image gradient loss
+- Simon: add loss_func2
 """
 
 import numpy as np
@@ -22,7 +23,7 @@ class grad_loss(nn.Module):
     '''
     image gradient loss
     '''
-    def __init__(self, vis = False, type = "sobel"):
+    def __init__(self, device, vis = False, type = "sobel"):
 
         super(grad_loss, self).__init__()
         
@@ -33,8 +34,8 @@ class grad_loss(nn.Module):
         kernel_x = torch.FloatTensor(kernel_x).unsqueeze(0).unsqueeze(0)
         kernel_y = torch.FloatTensor(kernel_y).unsqueeze(0).unsqueeze(0)
         # do not want update these weights
-        self.weight_x = nn.Parameter(data=kernel_x, requires_grad=False)
-        self.weight_y = nn.Parameter(data=kernel_y, requires_grad=False)
+        self.weight_x = nn.Parameter(data=kernel_x, requires_grad=False).to(device)
+        self.weight_y = nn.Parameter(data=kernel_y, requires_grad=False).to(device)
         
         self.vis = vis
     
@@ -98,11 +99,11 @@ def gradient_loss(predicted, target):
     return torch.pow((grad_p - grad_t), 2).mean()
 
 
-def perceptual_loss(predicted, target, block_idx, device):
+def perceptual_loss(vgg, predicted, target, block_idx, device):
     """
     compute perceptual loss between predicted and target
     """
-    p_loss = Percep_loss(block_idx, device)
+    p_loss = Percep_loss(vgg, block_idx, device)
     return p_loss(predicted, target)
 
 
@@ -113,4 +114,13 @@ def loss_func(predicted, target, lambda1, lambda2, block_idx, device):
     """
     loss = mse_loss(predicted, target) + lambda1 * gradient_loss(predicted, target)
     +lambda2 * perceptual_loss(predicted, target, block_idx, device)
+    return loss
+
+def loss_func2(vgg, predicted, target, lambda1, lambda2, block_idx, device):
+    """
+    same as loss_func, except the gradient loss is change to grad_loss() class
+    """
+    img_grad_loss = grad_loss(device)
+    loss = mse_loss(predicted, target) + lambda1 * img_grad_loss(predicted, target)
+    +lambda2 * perceptual_loss(vgg, predicted, target, block_idx, device)
     return loss

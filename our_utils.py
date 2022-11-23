@@ -12,7 +12,6 @@ Change log:
 
 import torch
 import torch.nn as nn
-from torchvision.models import vgg16_bn
 import numpy as np
 from skimage import feature
 import random
@@ -77,17 +76,17 @@ class Percep_loss(nn.Module):
     '''
     compute perceptual loss between fused image and input image
     '''
-    def __init__(self, block_idx, device):
+    def __init__(self, vgg, block_idx, device):
         '''
         block_index: the index of the block in VGG16 network, int or list
         int represents single layer perceptual loss
         list represents multiple layers perceptual loss
         '''
-        super(Percep_loss).__init__()
+        super(Percep_loss, self).__init__()
         self.block_idx = block_idx
         self.device = device
         # load vgg16_bn model features
-        self.vgg = vgg16_bn(pretrained=True).features.to(device).eval()
+        self.vgg = vgg.features.to(device).eval()
         self.loss = nn.MSELoss()
 
         # unable gradient update
@@ -106,6 +105,13 @@ class Percep_loss(nn.Module):
         '''
         compute perceptual loss between inputs and targets
         '''
+        if inputs.shape[1] == 1:
+            # expand 1 channel image to 3 channel, [B, 1, H, W] -> [B, 3, H, W]
+            inputs = inputs.expand(-1, 3, -1, -1)
+        if targets.shape[1] == 1:
+            targets = targets.expand(-1, 3, -1, -1)
+        
+        # get vgg output
         self.features(inputs)
         input_features = [hook.features.clone() for hook in self.hooks]
 
