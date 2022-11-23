@@ -191,7 +191,7 @@ class fullModel(nn.Module):
     a full model pipeline
     '''
     def __init__(self):
-        super(fullModel).__init__()
+        super(fullModel, self).__init__()
     
         self.fe = MSFuNet()
         self.recon = Recon()
