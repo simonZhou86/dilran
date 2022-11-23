@@ -105,7 +105,7 @@ def get_loader(ct, mri, tv_ratio, bs):
     return: Dataloader class for train and val
     '''
     assert ct.shape[0] == mri.shape[0], "two datasets do not have the same length? whats wrong"
-    total_len = ct.shape[0]
+    total_len = ct.shape[0] + mri.shape[0]
     n_train = int(tv_ratio * total_len)
 
     train_set, val_set = random_split(getIndex(total_len), lengths=(n_train, total_len - n_train))
