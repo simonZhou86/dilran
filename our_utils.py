@@ -87,7 +87,7 @@ class Percep_loss(nn.Module):
         self.device = device
         # load vgg16_bn model features
         self.vgg = vgg.features.to(device).eval()
-        self.loss = nn.MSELoss()
+        #self.loss = nn.MSELoss()
 
         # unable gradient update
         for param in self.vgg.parameters():
@@ -121,7 +121,8 @@ class Percep_loss(nn.Module):
         assert len(input_features) == len(target_features), 'number of input features and target features should be the same'
         loss = 0
         for i in range(len(input_features)):
-            loss += self.loss(input_features[i], target_features[i]) # mse loss
+            #loss += self.loss(input_features[i], target_features[i]) # mse loss
+            loss += ((input_features[i] - target_features[i]) ** 2).mean() # l2 norm
         
         return loss
 
