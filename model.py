@@ -172,13 +172,13 @@ class Recon(nn.Module):
         super(Recon, self).__init__()
 
         self.recon_conv = nn.Sequential(nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, stride=1, padding="same"),
-                                        nn.ReLU(inplace=True),
+                                        #nn.ReLU(inplace=True),
                                         nn.Conv2d(in_channels=64, out_channels=32, kernel_size=3, stride=1, padding="same"),
-                                        nn.ReLU(inplace=True),
+                                        #nn.ReLU(inplace=True),
                                         nn.Conv2d(in_channels=32, out_channels=16, kernel_size=3, stride=1, padding="same"),
-                                        nn.ReLU(inplace=True),
-                                        nn.Conv2d(in_channels=16, out_channels=1, kernel_size=3, stride=1, padding="same"),
-                                        nn.ReLU(inplace=True))
+                                        #nn.ReLU(inplace=True),
+                                        nn.Conv2d(in_channels=16, out_channels=1, kernel_size=3, stride=1, padding="same"))
+                                        #nn.ReLU(inplace=True))
         
     def forward(self, x):
         x = self.recon_conv(x)
