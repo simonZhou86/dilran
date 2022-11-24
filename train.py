@@ -32,7 +32,7 @@ parser = argparse.ArgumentParser(description='parameters for the training script
 parser.add_argument('--dataset', type=str, default="CT-MRI", help="which dataset to use, available option: CT-MRI, MRI-PET, MRI-SPECT")
 parser.add_argument('--batch_size', type=int, default=4, help='batch size for training')
 parser.add_argument('--epochs', type=int, default=100, help='number of epochs for training')
-parser.add_argument('--lr', type=float, default=1e-4, help='learning rate for training')
+parser.add_argument('--lr', type=float, default=0.0001, help='learning rate for training')
 parser.add_argument('--lr_decay', type=bool, default=False, help='decay learing rate?')
 #parser.add_argument('--checkpoint', type=str, default='./model', help='Path to checkpoint')
 parser.add_argument('--cuda', action='store_true', help='whether to use cuda', default= True)
@@ -62,8 +62,8 @@ if not os.path.exists(c.test_data_dir):
 target_dir = os.path.join(c.data_dir, opt.dataset)
 ct, mri = get_common_file(target_dir)
 train_ct, train_mri, test_ct, test_mri = load_data(ct, target_dir, c.test_num)
-torch.save(test_ct, os.path.join(c.test_data_dir, "ct_test.pt"))
-torch.save(test_mri, os.path.join(c.test_data_dir, "mri_test.pt"))
+# torch.save(test_ct, os.path.join(c.test_data_dir, "ct_test.pt"))
+# torch.save(test_mri, os.path.join(c.test_data_dir, "mri_test.pt"))
 #print(train_ct.shape, train_mri.shape, test_ct.shape, test_mri.shape)
 
 train_total = torch.cat((train_ct, train_mri), dim = 0).to(device)
@@ -161,8 +161,8 @@ for i in t:
 
 
     wandb.log({
-        "train loss": train_loss,
-        "val loss": val_loss,
+        "train loss": ave_loss,
+        "val loss": ave_val_loss,
         "val sample images": [wandb.Image(img) for img in val_display_img]
     })
 
@@ -170,5 +170,5 @@ for i in t:
     if ave_val_loss < lowest_val_loss:
         torch.save(model.state_dict(), model_dir+"/model_at_{}.pt".format(i))
         lowest_val_loss = ave_val_loss
-    print("model is saved in epoch {}".format(i))
+        print("model is saved in epoch {}".format(i))
 ########################################
