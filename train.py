@@ -4,7 +4,7 @@
 '''
 Change log:
 -Simon: file created, write some training code
-
+-Simon: refine training script
 '''
 
 import argparse
@@ -34,16 +34,20 @@ parser.add_argument('--batch_size', type=int, default=4, help='batch size for tr
 parser.add_argument('--epochs', type=int, default=100, help='number of epochs for training')
 parser.add_argument('--lr', type=float, default=0.0001, help='learning rate for training')
 parser.add_argument('--lr_decay', type=bool, default=False, help='decay learing rate?')
+parser.add_argument('--accum_batch', type=int, default=1, help='number of batches for gradient accumulation')
+parser.add_argument('--lambda1', type=float, default=0.5, help='weight for image gradient loss')
+parser.add_argument('--lambda2', type=float, default=0.5, help='weight for perceptual loss')
 #parser.add_argument('--checkpoint', type=str, default='./model', help='Path to checkpoint')
 parser.add_argument('--cuda', action='store_true', help='whether to use cuda', default= True)
-parser.add_argument('-seed', type=int, default=3407, help='random seed to use')
+parser.add_argument('--seed', type=int, default=3407, help='random seed to use')
+parser.add_argument('--base_loss', type=str, default='l1_charbonnier', help='which loss function to use for pixel-level (l2 or l1 charbonnier)')
 opt = parser.parse_args()
 
 ######### whether to use cuda ####################
 device = torch.device("cuda:0" if opt.cuda else "cpu")
 #################################################
 
-## seeding ####################
+########## seeding ##############
 seed_val = opt.seed
 random_seed(seed_val, opt.cuda)
 ################################
@@ -68,7 +72,7 @@ train_ct, train_mri, test_ct, test_mri = load_data(ct, target_dir, c.test_num)
 
 train_total = torch.cat((train_ct, train_mri), dim = 0).to(device)
 
-# these loaders return index, not the actual image 
+# these loaders return index, not the actual image
 train_loader, val_loader = get_loader(train_ct, train_mri, c.train_val_ratio, opt.batch_size)
 print("train loader length: ", len(train_loader), " val loder length: ", len(val_loader))
 
@@ -96,15 +100,20 @@ vgg = vgg16_bn(pretrained = True)
 ########################################################
 
 ############## train model ##############
-wandb.init(project="test-project", entity="csc2529") # visualize in wandb
+wandb.init(project="test-project", entity="csc2529", config=opt) # visualize in wandb
 
-wandb.config = {
-  "learning_rate": opt.lr,
-  "epochs": opt.epochs,
-  "batch_size": opt.batch_size
-}
+# wandb.config = {
+#   "learning_rate": opt.lr,
+#   "epochs": opt.epochs,
+#   "batch_size": opt.batch_size,
+#   "lambda1": c.lambda1,
+#   "lambda2": c.lambda2
+# }
 
 wandb.watch(model)
+
+# gradient accumulation for small batch
+NUM_ACCUMULATION_STEPS = opt.accum_batch
 
 train_loss = []
 val_loss = []
@@ -125,15 +134,17 @@ for i in t:
         img = train_total[batch_idx]
         img_out = model(img)
         # compute loss
-        loss = loss_func2(vgg, img_out, img, c.lambda1, c.lambda2, c.block_idx, device)
+        loss,_,_,_ = loss_func2(vgg, img_out, img, opt.lambda1, opt.lambda2, c.block_idx, device)
         # back propagate and update weights
+        #print("batch reg, grad, percep loss: ", reg_loss.item(), img_grad.item(), percep.item())
+        #loss = loss / NUM_ACCUMULATION_STEPS
         loss.backward()
+
+        #if ((j + 1) % NUM_ACCUMULATION_STEPS == 0) or (j + 1 == len(train_loader)):
         optimizer.step()
         b_loss += loss.item()
         #wandb.log({"loss": loss})
-    # lr decay
-    if opt.lr_decay:
-        stepLR.step()
+    
     # store loss
     ave_loss = b_loss / len(train_loader)
     train_loss.append(ave_loss)
@@ -152,23 +163,24 @@ for i in t:
             val_img_out = model(val_img)
             # display first image to visualize, this can be changed
             val_display_img.extend([val_img_out[i].squeeze(0).cpu().numpy() for i in range(1)])
-            loss = loss_func2(vgg, img_out, img, c.lambda1, c.lambda2, c.block_idx, device)
+            loss, _,_,_= loss_func2(vgg, img_out, img, opt.lambda1, opt.lambda2, c.block_idx, device)
             b_loss += loss.item()
 
     ave_val_loss = b_loss / len(val_loader)
     val_loss.append(ave_val_loss)
     print("epoch {}, validation loss is: {}".format(i, ave_val_loss))
 
-
-    wandb.log({
-        "train loss": ave_loss,
-        "val loss": ave_val_loss,
-        "val sample images": [wandb.Image(img) for img in val_display_img]
-    })
+    wandb.log({"train loss": ave_loss, "epoch": i})
+    wandb.log({"val loss": ave_val_loss, "epoch": i})
+    wandb.log({"val sample images": [wandb.Image(img) for img in val_display_img]})
 
     # save model
     if ave_val_loss < lowest_val_loss:
         torch.save(model.state_dict(), model_dir+"/model_at_{}.pt".format(i))
         lowest_val_loss = ave_val_loss
         print("model is saved in epoch {}".format(i))
+    
+    # lr decay update
+    if opt.lr_decay:
+        stepLR.step()
 ########################################
