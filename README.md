@@ -12,9 +12,13 @@ CSC2529 course project
 
 ### Phase 2
 - [x] training script
+'''diff
+- high priority
+'''
 - [ ] Image fusion (input: two feature maps f1, f2. output: final fused image)
+
 - [ ] Evaluation Metrics (get results)
-- [ ] try MRI-PET and MRI-SPECT
+- [ ] try MRI-PET and MRI-SPECT (least priority)
 
 ### Phase 3
 - [ ] test script
