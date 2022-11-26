@@ -7,7 +7,7 @@ Change log:
 - Reacher: file created, implement L1 loss and L2 loss function
 - Reacher: update image gradient calculation
 - Simon: update image gradient loss
-- Simon: add loss_func2
+- Simon: add loss_func2, and L1_Charbonnier_loss
 """
 
 import numpy as np
@@ -51,12 +51,28 @@ class grad_loss(nn.Module):
             return grad_xx, grad_xy, grad_yx, grad_yy
         
         # total image gradient, in dx and dy direction for image X and Y
-        gradientX = torch.abs(grad_xx) + torch.abs(grad_xy)
-        gradientY = torch.abs(grad_yx) + torch.abs(grad_yy)
+        # gradientX = torch.abs(grad_xx) + torch.abs(grad_xy)
+        # gradientY = torch.abs(grad_yx) + torch.abs(grad_yy)
+        x_diff = ((torch.abs(grad_xx) - torch.abs(grad_yx)) ** 2).mean()
+        y_diff = ((torch.abs(grad_xy) - torch.abs(grad_yy)) ** 2).mean()
         
         # mean squared frobenius norm (||.||_F^2)
-        grad_f_loss = torch.mean(torch.pow(torch.norm((gradientX - gradientY), p = "fro"), 2))
+        #grad_f_loss = torch.mean(torch.pow(torch.norm((gradientX - gradientY), p = "fro"), 2))
+        grad_f_loss = x_diff + y_diff
         return grad_f_loss
+
+
+class L1_Charbonnier_loss(nn.Module):
+    """L1 Charbonnierloss."""
+    def __init__(self):
+        super(L1_Charbonnier_loss, self).__init__()
+        self.eps = 1e-3
+
+    def forward(self, x, y):
+        # x: predict, y: target
+        loss = torch.mean(torch.sqrt((x - y)**2 + self.eps))
+        return loss
+
 
 def l1_loss(predicted, target):
     """
@@ -69,7 +85,8 @@ def mse_loss(predicted, target):
     """
     To compute L2 loss between predicted and target
     """
-    return torch.pow((predicted - target), 2).mean()
+    #return torch.pow((predicted - target), 2).mean()
+    return torch.mean(torch.pow(torch.norm((predicted - target), p = "fro"), 2))
 
 
 def img_gradient(img):
@@ -121,6 +138,10 @@ def loss_func2(vgg, predicted, target, lambda1, lambda2, block_idx, device):
     same as loss_func, except the gradient loss is change to grad_loss() class
     """
     img_grad_loss = grad_loss(device)
-    loss = mse_loss(predicted, target) + lambda1 * img_grad_loss(predicted, target)
-    +lambda2 * perceptual_loss(vgg, predicted, target, block_idx, device)
-    return loss
+    L1_charbonnier = L1_Charbonnier_loss()
+    reg_loss = L1_charbonnier(predicted, target)
+    #reg_loss = mse_loss(predicted, target)
+    img_grad_dif = img_grad_loss(predicted, target)
+    percep = perceptual_loss(vgg, predicted, target, block_idx, device)
+    loss = reg_loss + lambda1 * img_grad_dif + lambda2 * percep
+    return loss, reg_loss, img_grad_dif, percep
