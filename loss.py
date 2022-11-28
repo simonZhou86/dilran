@@ -86,20 +86,20 @@ def mse_loss(predicted, target):
     To compute L2 loss between predicted and target
     """
     #return torch.pow((predicted - target), 2).mean()
-    return torch.mean(torch.pow(torch.norm((predicted - target), p = "fro"), 2))
+    return torch.mean(torch.pow(torch.norm((predicted - target), p="fro"), 2))
 
 
-def img_gradient(img):
+def img_gradient(img: torch.Tensor):
     """
     Input: one PIL Image or numpy.ndarray (H x W x C) in the range [0, 255]
     Output: image gradient (2 x C x H x W)
     """
-    trans = transforms.ToTensor()
-    # a torch.FloatTensor of shape (C x H x W) in the range [0.0, 1.0]
-    img_tensor = trans(img)
-    # reshape to [N, C, H, W]
-    img_tensor = img_tensor.reshape((1, img_tensor.shape[0], img_tensor.shape[1], img_tensor.shape[2]))
-    dy, dx = image_gradients(img_tensor)
+    # trans = transforms.ToTensor()
+    # # a torch.FloatTensor of shape (C x H x W) in the range [0.0, 1.0]
+    # img_tensor = trans(img)
+    # # reshape to [N, C, H, W]
+    # img_tensor = img_tensor.reshape((1, img_tensor.shape[0], img_tensor.shape[1], img_tensor.shape[2]))
+    dy, dx = image_gradients(img)
     dy, dx = dy.squeeze(), dx.squeeze()
     dxy = torch.stack((dx, dy), axis=0)
     return dxy
@@ -132,6 +132,7 @@ def loss_func(predicted, target, lambda1, lambda2, block_idx, device):
     loss = mse_loss(predicted, target) + lambda1 * gradient_loss(predicted, target)
     +lambda2 * perceptual_loss(predicted, target, block_idx, device)
     return loss
+
 
 def loss_func2(vgg, predicted, target, lambda1, lambda2, block_idx, device):
     """
