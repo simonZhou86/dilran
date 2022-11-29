@@ -138,7 +138,7 @@ def l1_norm(matrix):
     """
     Calculate the L1 norm for some fusion strategies
     """
-    return torch.abs(matrix).sum()
+    return matrix.norm(p=1)
 
 
 def fusion_strategy(f1, f2, strategy="average"):
@@ -160,15 +160,18 @@ def fusion_strategy(f1, f2, strategy="average"):
     """
 
     # The fused feature
-    fused = np.zeros_like(f1)
     if strategy == "addition":
         fused = f1 + f2
     elif strategy == "average":
         fused = (f1 + f2) / 2
     elif strategy == "FER":
-        k1 = f1 ** 2 / (f1 ** 2 + f2 ** 2)
-        k2 = f2 ** 2 / (f1 ** 2 + f2 ** 2)
+        f_sum = (f1 ** 2 + f2 ** 2).clone()
+        f_sum[f_sum == 0] = 1
+        k1 = f1 ** 2 / f_sum
+        k2 = f2 ** 2 / f_sum
         fused = k1 * f1 + k2 * f2
+    elif strategy == "max_val":
+        fused = torch.maximum(f1, f2)
     elif strategy == "L1NW":
         l1 = l1_norm(f1)
         l2 = l1_norm(f2)
