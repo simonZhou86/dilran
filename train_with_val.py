@@ -21,7 +21,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torchvision.models import vgg16_bn
 
-import meta_config as c
+import meta_config as config
 from model import *
 from our_utils import *
 from dataset_loader import *
@@ -58,27 +58,27 @@ random_seed(seed_val, opt.cuda)
 ################################
 
 ############ making dirs########################
-if not os.path.exists(c.res_dir):
-    os.mkdir(c.res_dir)
-model_dir = os.path.join(c.res_dir, "pretrained_models")
+if not os.path.exists(config.res_dir):
+    os.mkdir(config.res_dir)
+model_dir = os.path.join(config.res_dir, "pretrained_models")
 if not os.path.exists(model_dir):
     os.mkdir(model_dir)
-if not os.path.exists(c.test_data_dir):
-    os.mkdir(c.test_data_dir)
+if not os.path.exists(config.test_data_dir):
+    os.mkdir(config.test_data_dir)
 ################################################
 
 ####### loading dataset ####################################
-target_dir = os.path.join(c.data_dir, opt.dataset)
+target_dir = os.path.join(config.data_dir, opt.dataset)
 ct, mri = get_common_file(target_dir)
-train_ct, train_mri, test_ct, test_mri = load_data(ct, target_dir, c.test_num)
-torch.save(test_ct, os.path.join(c.test_data_dir, "ct_test.pt"))
-torch.save(test_mri, os.path.join(c.test_data_dir, "mri_test.pt"))
+train_ct, train_mri, test_ct, test_mri = load_data(ct, target_dir, config.test_num)
+torch.save(test_ct, os.path.join(config.test_data_dir, "ct_test.pt"))
+torch.save(test_mri, os.path.join(config.test_data_dir, "mri_test.pt"))
 # print(train_ct.shape, train_mri.shape, test_ct.shape, test_mri.shape)
 
 train_total = torch.cat((train_ct, train_mri), dim=0).to(device)
 
 # these loaders return index, not the actual image
-train_loader, val_loader = get_loader(train_ct, train_mri, c.train_val_ratio, opt.batch_size)
+train_loader, val_loader = get_loader(train_ct, train_mri, config.train_val_ratio, opt.batch_size)
 print("train loader length: ", len(train_loader), " val loder length: ", len(val_loader))
 
 # check the seed is working
@@ -140,7 +140,7 @@ for i in t:
         img = train_total[batch_idx]
         img_out = model(img)
         # compute loss
-        loss, _, _, _ = loss_func2(vgg, img_out, img, opt.lambda1, opt.lambda2, c.block_idx, device)
+        loss, _, _, _ = loss_func2(vgg, img_out, img, opt.lambda1, opt.lambda2, config.block_idx, device)
         # back propagate and update weights
         # print("batch reg, grad, percep loss: ", reg_loss.item(), img_grad.item(), percep.item())
         # loss = loss / NUM_ACCUMULATION_STEPS
@@ -169,12 +169,17 @@ for i in t:
             val_img_out = model(val_img)
             # display first image to visualize, this can be changed
             val_display_img.extend([val_img_out[i].squeeze(0).cpu().numpy() for i in range(1)])
-            loss, _, _, _ = loss_func2(vgg, img_out, img, opt.lambda1, opt.lambda2, c.block_idx, device)
+            loss, _, _, _ = loss_func2(vgg, img_out, img, opt.lambda1, opt.lambda2, config.block_idx, device)
             b_loss += loss.item()
 
     ave_val_loss = b_loss / len(val_loader)
     val_loss.append(ave_val_loss)
     print("epoch {}, validation loss is: {}".format(i, ave_val_loss))
+
+    # define a metric we are interested in the minimum of
+    wandb.define_metric("train loss", summary="min")
+    # define a metric we are interested in the maximum of
+    wandb.define_metric("val loss", summary="min")
 
     wandb.log({"train loss": ave_loss, "epoch": i})
     wandb.log({"val loss": ave_val_loss, "epoch": i})
@@ -191,11 +196,20 @@ for i in t:
     torch.save(model.state_dict(), model_dir + "/current.pt".format(i))
 
     val_psnr, val_ssim, val_nmi, val_mi, val_fsim = validate(model_dir + "/current.pt")
+
+    # define a metric we are interested in the maximum of
+    wandb.define_metric("PSNR", summary="max")
+    wandb.define_metric("SSIM", summary="max")
+    wandb.define_metric("NMI", summary="max")
+    wandb.define_metric("MI", summary="max")
+    wandb.define_metric("FSIM", summary="max")
+
     wandb.log({"PSNR": val_psnr, "epoch": i})
     wandb.log({"SSIM": val_ssim, "epoch": i})
     wandb.log({"NMI": val_nmi, "epoch": i})
     wandb.log({"MI": val_mi, "epoch": i})
     wandb.log({"FSIM": val_fsim, "epoch": i})
+
     print("PSNR", "SSIM", "NMI", "MI", "FSIM")
     print(val_psnr, val_ssim, val_nmi, val_mi, val_fsim)
     if val_ssim > best_ssim:
