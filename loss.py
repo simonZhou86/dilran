@@ -146,3 +146,8 @@ def loss_func2(vgg, predicted, target, lambda1, lambda2, block_idx, device):
     percep = perceptual_loss(vgg, predicted, target, block_idx, device)
     loss = reg_loss + lambda1 * img_grad_dif + lambda2 * percep
     return loss, reg_loss, img_grad_dif, percep
+
+
+def loss_function_l2(predicted, target):
+    loss = nn.MSELoss()
+    return loss(predicted, target)
