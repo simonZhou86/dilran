@@ -23,20 +23,23 @@ class grad_loss(nn.Module):
     '''
     image gradient loss
     '''
-    def __init__(self, device, vis = False, type = "sobel"):
+    def __init__(self, device, amp = True, vis = False, type = "sobel"):
 
         super(grad_loss, self).__init__()
         
         # only use sobel filter now
         if type == "sobel":
-            kernel_x = [[-1., 0., 1.], [-2., 0., 2.], [-1., 0., 1.]]
-            kernel_y = [[1., 2., 1.], [0., 0., 0.], [-1., -2., -1.]]
-        kernel_x = torch.FloatTensor(kernel_x).unsqueeze(0).unsqueeze(0)
-        kernel_y = torch.FloatTensor(kernel_y).unsqueeze(0).unsqueeze(0)
+            #with torch.cuda.amp.autocast(enabled=amp):
+            kernel_x = torch.Tensor([[-1., 0., 1.], [-2., 0., 2.], [-1., 0., 1.]])
+            kernel_y = torch.Tensor([[1., 2., 1.], [0., 0., 0.], [-1., -2., -1.]])
+
+        kernel_x = kernel_x.unsqueeze(0).unsqueeze(0)
+        kernel_y = kernel_y.unsqueeze(0).unsqueeze(0)
         # do not want update these weights
         self.weight_x = nn.Parameter(data=kernel_x, requires_grad=False).to(device)
         self.weight_y = nn.Parameter(data=kernel_y, requires_grad=False).to(device)
-        
+        #self.weight_yx = nn.Parameter(data=kernel_x.double(), requires_grad=False).to(device)
+        #self.weight_yy = nn.Parameter(data=kernel_y.double(), requires_grad=False).to(device)
         self.vis = vis
     
     def forward(self, x, y):
@@ -85,8 +88,8 @@ def mse_loss(predicted, target):
     """
     To compute L2 loss between predicted and target
     """
-    #return torch.pow((predicted - target), 2).mean()
-    return torch.mean(torch.pow(torch.norm((predicted - target), p = "fro"), 2))
+    return torch.pow((predicted - target), 2).mean()
+    #return torch.mean(torch.pow(torch.norm((predicted - target), p = "fro"), 2))
 
 
 def img_gradient(img):
@@ -138,9 +141,9 @@ def loss_func2(vgg, predicted, target, lambda1, lambda2, block_idx, device):
     same as loss_func, except the gradient loss is change to grad_loss() class
     """
     img_grad_loss = grad_loss(device)
-    L1_charbonnier = L1_Charbonnier_loss()
-    reg_loss = L1_charbonnier(predicted, target)
-    #reg_loss = mse_loss(predicted, target)
+    #L1_charbonnier = L1_Charbonnier_loss()
+    #reg_loss = L1_charbonnier(predicted, target)
+    reg_loss = mse_loss(predicted, target)
     img_grad_dif = img_grad_loss(predicted, target)
     percep = perceptual_loss(vgg, predicted, target, block_idx, device)
     loss = reg_loss + lambda1 * img_grad_dif + lambda2 * percep
