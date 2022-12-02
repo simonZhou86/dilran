@@ -138,10 +138,10 @@ def l1_norm(matrix):
     """
     Calculate the L1 norm for some fusion strategies
     """
-    return matrix.norm(p=1)
+    return torch.abs(matrix).sum()
 
 
-def fusion_strategy(f1, f2, strategy="average"):
+def fusion_strategy(f1, f2, device, strategy="average"):
     """
     f1: the extracted features of images 1
     f2: the extracted features of images 2
@@ -160,6 +160,7 @@ def fusion_strategy(f1, f2, strategy="average"):
     """
 
     # The fused feature
+    fused = torch.zeros_like(f1, device=device)
     if strategy == "addition":
         fused = f1 + f2
     elif strategy == "average":
@@ -170,11 +171,11 @@ def fusion_strategy(f1, f2, strategy="average"):
         k1 = f1 ** 2 / f_sum
         k2 = f2 ** 2 / f_sum
         fused = k1 * f1 + k2 * f2
-    elif strategy == "max_val":
-        fused = torch.maximum(f1, f2)
     elif strategy == "L1NW":
         l1 = l1_norm(f1)
+        print(l1)
         l2 = l1_norm(f2)
+        print(l2)
         fused = l1 * f1 + l2 * f2
     elif strategy == "AL1NW":
         p1 = l1_norm(f1) / 2
@@ -185,6 +186,31 @@ def fusion_strategy(f1, f2, strategy="average"):
         l2 = l1_norm(f2)
         w1 = l1 / (l1 + l2)
         w2 = l2 / (l1 + l2)
+        fused = w1 * f1 + w2 * f2
+    elif strategy == "SFNN":
+        def process_for_nuc(f):
+            f = f.squeeze(0)
+            total = []
+            for i in range(f.shape[0]):
+                temp = torch.norm(f[i], "nuc")
+                # total = np.append(total, temp)
+                total.append(temp)
+            return total
+
+        f1_soft = nn.functional.softmax(f1)
+        f2_soft = nn.functional.softmax(f2)
+        l1 = process_for_nuc(f1_soft)
+        l2 = process_for_nuc(f2_soft)
+        w1 = max(l1) / (max(l1) + max(l2))
+        w2 = max(l2) / (max(l1) + max(l2))
+        # w1 = sum(l1) / (sum(l1) + sum(l2))
+        # w2 = sum(l2) / (sum(l1) + sum(l2))
+        
+        # f_sum = (f1 ** 2 + f2 ** 2).clone()
+        # f_sum[f_sum == 0] = 1
+        # k1 = f1 ** 2 / f_sum
+        # k2 = f2 ** 2 / f_sum
+
         fused = w1 * f1 + w2 * f2
     # Need to do reconstruction on "fused"
     return fused
