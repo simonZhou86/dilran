@@ -1,0 +1,264 @@
+# Training script for the project
+# Author: Simon Zhou, last modify Nov. 18, 2022
+
+'''
+Change log:
+-Simon: file created, write some training code
+-Simon: refine training script
+-Reacher: train v3
+-Reacher: add model choice
+-Simon: train with paired images, use FL1N fusion strategy
+'''
+
+import argparse
+import sys
+
+sys.path.append("../")
+from tqdm import trange
+
+import torch.optim as optim
+from torchvision.models import vgg16_bn
+
+import meta_config as config
+from models.model_v5 import *
+from our_utils import *
+from dataset_loader import *
+from loss import *
+from val import validate
+# from model_msrpan import SRN
+
+import wandb
+
+parser = argparse.ArgumentParser(description='parameters for the training script')
+parser.add_argument('--dataset', type=str, default="CT-MRI",
+                    help="which dataset to use, available option: CT-MRI, MRI-PET, MRI-SPECT")
+parser.add_argument('--batch_size', type=int, default=3, help='batch size for training')
+parser.add_argument('--epochs', type=int, default=100, help='number of epochs for training')
+parser.add_argument('--lr', type=float, default=0.0001, help='learning rate for training')
+parser.add_argument('--lr_decay', type=bool, default=False, help='decay learing rate?')
+parser.add_argument('--accum_batch', type=int, default=1, help='number of batches for gradient accumulation')
+parser.add_argument('--lambda1', type=float, default=0.2, help='weight for image gradient loss')
+parser.add_argument('--lambda2', type=float, default=0.2, help='weight for perceptual loss')
+# parser.add_argument('--checkpoint', type=str, default='./model', help='Path to checkpoint')
+parser.add_argument('--cuda', action='store_true', help='whether to use cuda', default=True)
+parser.add_argument('--seed', type=int, default=3407, help='random seed to use')
+parser.add_argument('--base_loss', type=str, default='l2_norm',
+                    help='which loss function to use for pixel-level (l2 or l1 charbonnier)')
+
+opt = parser.parse_args()
+
+######### whether to use cuda ####################
+device = torch.device("cuda:0" if opt.cuda else "cpu")
+#################################################
+
+########## seeding ##############
+seed_val = opt.seed
+random_seed(seed_val, opt.cuda)
+################################
+
+############ making dirs########################
+if not os.path.exists(config.res_dir):
+    os.mkdir(config.res_dir)
+model_dir = os.path.join(config.res_dir, "model_v5_trainPair")
+if not os.path.exists(model_dir):
+    os.mkdir(model_dir)
+if not os.path.exists(config.test_data_dir):
+    os.mkdir(config.test_data_dir)
+################################################
+
+####### loading dataset ####################################
+target_dir = os.path.join(config.data_dir, opt.dataset)
+ct, mri = get_common_file(target_dir)
+train_ct, train_mri, test_ct, test_mri = load_data(ct, target_dir, config.test_num)
+
+# Save Test Set
+# torch.save(test_ct, os.path.join(config.test_data_dir, "ct_test.pt"))
+# torch.save(test_mri, os.path.join(config.test_data_dir, "mri_test.pt"))
+
+# torch.save(test_gt, os.path.join(config.test_data_dir, "test_gt.pt"))
+
+# print(train_ct.shape, train_mri.shape, test_ct.shape, test_mri.shape)
+
+# train_total = torch.cat((train_ct, train_mri), dim=0).to(device)
+train_ct = train_ct.to(device)
+train_mri = train_mri.to(device)
+
+# these loaders return index, not the actual image
+train_loader, val_loader = get_loader2(train_ct, train_mri, config.train_val_ratio, opt.batch_size)
+print("train loader length: ", len(train_loader), " val loder length: ", len(val_loader))
+
+# check the seed is working
+# for batch_idx in train_loader:
+#     batch_idx = batch_idx.view(-1).long()
+#     print(batch_idx)
+# print("validation index")
+# for batch_idx in val_loader:
+#     batch_idx = batch_idx.view(-1).long()
+#     print(batch_idx)
+# sys.exit()
+############################################################
+
+
+"""
+ choose model
+"""
+
+model = fullModel().to(device)
+print("Default: Training ours")
+
+############ loading model #####################
+optimizer = optim.Adam(model.parameters(), lr=opt.lr)
+
+if opt.lr_decay:
+    stepLR = optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.5)
+###################################################
+
+##### downloading pretrained vgg model ##################
+vgg = vgg16_bn(pretrained=True)
+########################################################
+
+############## train model ##############
+wandb.init(project="test-project", entity="csc2529", config=opt)  # visualize in wandb
+
+wandb.watch(model)
+
+# gradient accumulation for small batch
+NUM_ACCUMULATION_STEPS = opt.accum_batch
+
+train_loss = []
+val_loss = []
+t = trange(opt.epochs, desc='Training progress...', leave=True)
+lowest_val_loss = int(1e9)
+best_ssim = 0
+
+for i in t:
+    print("new epoch {} starts!".format(i))
+    # clear gradient in model
+    model.zero_grad()
+    b_loss = 0
+    # train model
+    model.train()
+    for j, batch_idx in enumerate(train_loader):
+        # clear gradient in optimizer
+        optimizer.zero_grad()
+        batch_idx = batch_idx.view(-1).long()
+
+        # fuse while fusion
+        img_1 = train_ct[batch_idx]
+        img_2 = train_mri[batch_idx]
+
+        img_1_fe = model.fe(img_1)
+        img_2_fe = model.fe(img_2)
+
+        fused = fusion_strategy(img_1_fe, img_2_fe, device, strategy="FL1N")
+
+        fused_recon = model.recon(fused)
+
+        img_out = fused_recon
+
+        # compute loss
+        loss1, _, _, _ = loss_func2(vgg, img_out, img_1, opt.lambda1, opt.lambda2, config.block_idx, device)
+        loss2, _, _, _ = loss_func2(vgg, img_out, img_2, opt.lambda1, opt.lambda2, config.block_idx, device)
+        loss = loss1 + loss2
+        # back propagate and update weights
+        # print("batch reg, grad, percep loss: ", reg_loss.item(), img_grad.item(), percep.item())
+        # loss = loss / NUM_ACCUMULATION_STEPS
+        loss.backward()
+
+        # if ((j + 1) % NUM_ACCUMULATION_STEPS == 0) or (j + 1 == len(train_loader)):
+        optimizer.step()
+        b_loss += loss.item()
+        # wandb.log({"loss": loss})
+
+    # store loss
+    ave_loss = b_loss / len(train_loader)
+    train_loss.append(ave_loss)
+    print("epoch {}, training loss is: {}".format(i, ave_loss))
+
+    # validation
+    val_loss = []
+    val_display_img = []
+    with torch.no_grad():
+        b_loss = 0
+        # eval model, unable update weights
+        model.eval()
+        for k, batch_idx in enumerate(val_loader):
+            batch_idx = batch_idx.view(-1).long()
+
+            # fuse while fusion
+            img_1 = train_ct[batch_idx]
+            img_2 = train_mri[batch_idx]
+
+            img_1_fe = model.fe(img_1)
+            img_2_fe = model.fe(img_2)
+
+            fused = fusion_strategy(img_1_fe, img_2_fe, device, strategy="FL1N")
+
+            fused_recon = model.recon(fused)
+
+            img_out = fused_recon
+
+            # img_out = fused_recon.squeeze(0).squeeze(0).detach().clamp(min=0, max=1.)
+
+            # compute loss
+            # display first image to visualize, this can be changed
+            # val_display_img.extend([img_out[i].squeeze(0).cpu().numpy() for i in range(1)])
+
+            loss1, _, _, _ = loss_func2(vgg, img_out, img_1, opt.lambda1, opt.lambda2, config.block_idx, device)
+            loss2, _, _, _ = loss_func2(vgg, img_out, img_2, opt.lambda1, opt.lambda2, config.block_idx, device)
+            loss = loss1 + loss2
+            b_loss += loss.item()
+
+    ave_val_loss = b_loss / len(val_loader)
+    val_loss.append(ave_val_loss)
+    print("epoch {}, validation loss is: {}".format(i, ave_val_loss))
+
+    # define a metric we are interested in the minimum of
+    wandb.define_metric("train loss", summary="min")
+    # define a metric we are interested in the maximum of
+    wandb.define_metric("val loss", summary="min")
+
+    wandb.log({"train loss": ave_loss, "epoch": i})
+    wandb.log({"val loss": ave_val_loss, "epoch": i})
+    # wandb.log({"val sample images": [wandb.Image(img) for img in val_display_img]})
+
+    # save model
+    if ave_val_loss < lowest_val_loss:
+        torch.save(model.state_dict(), model_dir + "/model_lowest_loss.pt")
+        lowest_val_loss = ave_val_loss
+        print("model is saved in epoch {}".format(i))
+
+    # Evaluate during training
+    # Save the current model
+    torch.save(model.state_dict(), model_dir + "/current.pt".format(i))
+
+    val_psnr, val_ssim, val_nmi, val_mi, val_fsim = validate(model_dir + "/current.pt")
+
+    # define a metric we are interested in the maximum of
+    wandb.define_metric("PSNR", summary="max")
+    wandb.define_metric("SSIM", summary="max")
+    wandb.define_metric("NMI", summary="max")
+    wandb.define_metric("MI", summary="max")
+    wandb.define_metric("FSIM", summary="max")
+
+    wandb.log({"PSNR": val_psnr, "epoch": i})
+    wandb.log({"SSIM": val_ssim, "epoch": i})
+    wandb.log({"NMI": val_nmi, "epoch": i})
+    wandb.log({"MI": val_mi, "epoch": i})
+    wandb.log({"FSIM": val_fsim, "epoch": i})
+
+    print("PSNR", "SSIM", "NMI", "MI", "FSIM")
+    print(val_psnr, val_ssim, val_nmi, val_mi, val_fsim)
+    if val_ssim > best_ssim:
+        best_ssim = val_ssim
+        print(f"ヾ(◍°∇°◍)ﾉﾞ New best SSIM = {best_ssim}")
+        # overwrite
+        torch.save(model.state_dict(), model_dir + "/best.pt".format(i))
+
+    if i == opt.epochs - 1:
+        torch.save(model.state_dict(), model_dir + "/last.pt".format(i))
+
+    # lr decay update
+    if opt.lr_decay:
+        stepLR.step()
+########################################
