@@ -85,8 +85,8 @@ def mse_loss(predicted, target):
     """
     To compute L2 loss between predicted and target
     """
-    #return torch.pow((predicted - target), 2).mean()
-    return torch.mean(torch.pow(torch.norm((predicted - target), p="fro"), 2))
+    return torch.pow((predicted - target), 2).mean()
+    #return torch.mean(torch.pow(torch.norm((predicted - target), p="fro"), 2))
 
 
 def img_gradient(img: torch.Tensor):
@@ -139,9 +139,9 @@ def loss_func2(vgg, predicted, target, lambda1, lambda2, block_idx, device):
     same as loss_func, except the gradient loss is change to grad_loss() class
     """
     img_grad_loss = grad_loss(device)
-    L1_charbonnier = L1_Charbonnier_loss()
-    reg_loss = L1_charbonnier(predicted, target)
-    #reg_loss = mse_loss(predicted, target)
+    #L1_charbonnier = L1_Charbonnier_loss()
+    #reg_loss = L1_charbonnier(predicted, target)
+    reg_loss = mse_loss(predicted, target)
     img_grad_dif = img_grad_loss(predicted, target)
     percep = perceptual_loss(vgg, predicted, target, block_idx, device)
     loss = reg_loss + lambda1 * img_grad_dif + lambda2 * percep
