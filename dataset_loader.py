@@ -62,6 +62,7 @@ def load_data(file, target_dir, test_num):
     '''
 
     test_ind = np.random.choice(len(file), size=test_num, replace = False)
+    print(test_ind)
     test = []
     for ind in test_ind:
         test.append(file[ind])
@@ -113,7 +114,22 @@ def get_loader(ct, mri, tv_ratio, bs):
     val_loader = DataLoader(val_set, batch_size=bs, num_workers=0, shuffle=False, drop_last=False)
     return train_loader, val_loader
 
+def get_loader2(ct, mri, tv_ratio, bs):
+    '''
+    ct: ct data
+    mri: mri data
+    tv_ratio: train & validation ratio
+    bs: batch size
+    return: Dataloader class for train and val
+    '''
+    assert ct.shape[0] == mri.shape[0], "two datasets do not have the same length? whats wrong"
+    total_len = ct.shape[0]
+    n_train = int(tv_ratio * total_len)
 
+    train_set, val_set = random_split(getIndex(total_len), lengths=(n_train, total_len - n_train))
+    train_loader = DataLoader(train_set, batch_size=bs, num_workers=0, shuffle=True, drop_last=False)
+    val_loader = DataLoader(val_set, batch_size=bs, num_workers=0, shuffle=False, drop_last=False)
+    return train_loader, val_loader
 
 # if __name__ == "__main__":
 #     target_dir = "./CT-MRI/"
