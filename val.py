@@ -57,7 +57,8 @@ test_mri = torch.load(os.path.join(test_folder, 'mri_test.pt')).to(device)
 def validate(model_pt):
     model = fullModel().to(device)
     model.load_state_dict(torch.load(model_pt, map_location=device))
-    for strategy in ["FL1N"]:
+    # Use SFNN strategy
+    for strategy in ["SFNN"]:
         psnrs, ssims, nmis, mis, fsims = [], [], [], [], []
         for slice in range(test_ct.shape[0]):
             ct_slice = test_ct[slice, :, :, :].unsqueeze(0)
@@ -67,7 +68,7 @@ def validate(model_pt):
             # print(ct_fe.shape)
             mri_fe = model.fe(mri_slice)
 
-            fused = fusion_strategy(ct_fe, mri_fe, strategy=strategy)
+            fused = fusion_strategy(ct_fe, mri_fe, device=device, strategy=strategy)
             final = model.recon(fused)
             final = final.squeeze(0).squeeze(0).detach().cpu().clamp(min=0, max=1.)
             gt1 = ct_slice.squeeze(0).squeeze(0).cpu().clamp(min=0, max=1.)
