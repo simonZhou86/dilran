@@ -194,18 +194,22 @@ def fusion_strategy(f1, f2, device, strategy="average"):
             for i in range(f.shape[0]):
                 temp = torch.norm(f[i], "nuc")
                 # total = np.append(total, temp)
-                total.append(temp)
+                total.append(temp.item())
             return total
 
         f1_soft = nn.functional.softmax(f1)
         f2_soft = nn.functional.softmax(f2)
         l1 = process_for_nuc(f1_soft)
+        #print(l1)
         l2 = process_for_nuc(f2_soft)
+        l1 = np.array(l1)
+        l2 = np.array(l2)
+        # w1 = np.mean(l1)**2 / (np.mean(l1)**2 + np.mean(l2)**2)
+        # w2 = np.mean(l2)**2 / (np.mean(l1)**2 + np.mean(l2)**2)
+        #w1 = sum(l1)**2 / (sum(l1)**2 + sum(l2)**2)
+        #w2 = sum(l2)**2 / (sum(l1)**2 + sum(l2)**2)
         w1 = max(l1)**2 / (max(l1)**2 + max(l2)**2)
         w2 = max(l2)**2 / (max(l1)**2 + max(l2)**2)
-        # w1 = sum(l1) / (sum(l1) + sum(l2))
-        # w2 = sum(l2) / (sum(l1) + sum(l2))
-        
         # f_sum = (f1 ** 2 + f2 ** 2).clone()
         # f_sum[f_sum == 0] = 1
         # k1 = f1 ** 2 / f_sum
