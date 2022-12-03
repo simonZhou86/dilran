@@ -201,8 +201,8 @@ def fusion_strategy(f1, f2, device, strategy="average"):
         f2_soft = nn.functional.softmax(f2)
         l1 = process_for_nuc(f1_soft)
         l2 = process_for_nuc(f2_soft)
-        w1 = max(l1) / (max(l1) + max(l2))
-        w2 = max(l2) / (max(l1) + max(l2))
+        w1 = max(l1)**2 / (max(l1)**2 + max(l2)**2)
+        w2 = max(l2)**2 / (max(l1)**2 + max(l2)**2)
         # w1 = sum(l1) / (sum(l1) + sum(l2))
         # w2 = sum(l2) / (sum(l1) + sum(l2))
         
