@@ -18,6 +18,13 @@ To see the full list of parameters, run
 python3 ./train_with_val.py -h
 ```
 
+To evaluate the results, run
+```bash
+python3 ./inference.py
+```
+If you are using different model, you may have to modify a little bit of the code.
+
+
 Comment out anything related to wandb in the code if you do not want to use it to visualize the result.
 
 
