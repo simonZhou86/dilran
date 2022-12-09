@@ -8,7 +8,7 @@ data is available upon request
 
 ## Usage
 
-You may want to change to your own dataset. If you have a 3-channel PET or SPECT image, you may want to change the dataloader.py file
+You may want to change to your own dataset. If you have a 3-channel PET or SPECT image, you may want to change the dataset_loader.py file
 To train the network, run
 ```bash
 python3 ./train_with_val.py --batch_size 4 --epochs 100 --lambda1 0.2 --lambda2 0.2
