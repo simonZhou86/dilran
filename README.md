@@ -4,8 +4,6 @@ University of Toronto CSC2529 Computational Imaging project.
 
 ''An attention-based Multi-Scale Feature Learning Framework for Multimodal Medical Image Fusion''
 
-data is available upon request
-
 ## Usage
 
 You may want to change to your own dataset. If you have a 3-channel PET or SPECT image, you may want to change the dataset_loader.py file
