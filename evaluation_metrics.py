@@ -16,7 +16,7 @@ from sklearn.metrics import mutual_info_score
 # import piq
 import cv2
 import phasepack.phasecong as pc
-
+import skimage.measure as skm
 
 def psnr(img_pred: torch.Tensor, img_true: torch.Tensor):
     """
@@ -42,8 +42,8 @@ def nmi(img_pred: torch.Tensor, img_true: torch.Tensor):
     normalized mutual information (NMI)
     Return: float
     """
-    img_pred_np = np.array(img_pred.squeeze())
-    img_true_np = np.array(img_true.squeeze())
+    img_pred_np = np.array(img_pred)#.squeeze())
+    img_true_np = np.array(img_true)#.squeeze())
     nor_mi = normalized_mutual_information(img_pred_np, img_true_np)
     return nor_mi
 
@@ -74,8 +74,8 @@ def nmi(img_pred: torch.Tensor, img_true: torch.Tensor):
 
 
 def mutual_information(img_pred: torch.Tensor, img_true: torch.Tensor):
-    img_pred_np = np.array(img_pred.squeeze())
-    img_true_np = np.array(img_true.squeeze())
+    img_pred_np = np.array(img_pred)#.squeeze())
+    img_true_np = np.array(img_true)#.squeeze())
     padded0, padded1 = img_pred_np, img_true_np
 
     hist, bin_edges = np.histogramdd(
@@ -126,21 +126,16 @@ def _similarity_measure(x, y, constant):
 def fsim(img_pred: torch.Tensor, img_true: torch.Tensor, T1=0.85, T2=160) -> float:
     """
     Feature-based similarity index, based on phase congruency (PC) and image gradient magnitude (GM)
-
     There are different ways to implement PC, the authors of the original FSIM paper use the method
     defined by Kovesi (1999). The Python phasepack project fortunately provides an implementation
     of the approach.
-
     There are also alternatives to implement GM, the FSIM authors suggest to use the Scharr
     operation which is implemented in OpenCV.
-
     Note that FSIM is defined in the original papers for grayscale as well as for RGB images. Our use cases
     are mostly multi-band images e.g. RGB + NIR. To accommodate for this fact, we compute FSIM for each individual
     band and then take the average.
-
     Note also that T1 and T2 are constants depending on the dynamic range of PC/GM values. In theory this parameters
     would benefit from fine-tuning based on the used data, we use the values found in the original paper as defaults.
-
     Args:
         org_img -- numpy array containing the original image
         pred_img -- predicted image
@@ -182,3 +177,8 @@ def fsim(img_pred: torch.Tensor, img_true: torch.Tensor, T1=0.85, T2=160) -> flo
         fsim_list.append(numerator / denominator)
 
     return np.mean(fsim_list)
+
+
+def en(img: torch.Tensor):
+    entropy = skm.shannon_entropy(img)
+    return entropy
