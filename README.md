@@ -30,4 +30,10 @@ Comment out anything related to wandb in the code if you do not want to use it t
 
 ## Citation
 ```bibtex
+@article{zhou2022attention,
+  title={An Attention-based Multi-Scale Feature Learning Network for Multimodal Medical Image Fusion},
+  author={Zhou, Meng and Xu, Xiaolan and Zhang, Yuxuan},
+  journal={arXiv preprint arXiv:2212.04661},
+  year={2022}
+}
 ```
