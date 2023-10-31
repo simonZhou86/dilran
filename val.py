@@ -57,6 +57,7 @@ test_mri = torch.load(os.path.join(test_folder, 'mri_test.pt')).to(device)
 def validate(model_pt):
     model = fullModel().to(device)
     model.load_state_dict(torch.load(model_pt, map_location=device))
+    model.eval()
     # Use SFNN strategy
     for strategy in ["SFNN"]:
         psnrs, ssims, nmis, mis, fsims = [], [], [], [], []
