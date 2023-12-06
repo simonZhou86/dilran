@@ -1,6 +1,6 @@
 # DILRAN for medical image fusion
 
-''An attention-based Multi-Scale Feature Learning Framework for Multimodal Medical Image Fusion''
+''An attention-based Multi-Scale Feature Learning Framework for Multimodal Medical Image Fusion''[paper]((https://arxiv.org/pdf/2212.04661.pdf)
 
 ## Usage
 
@@ -20,7 +20,7 @@ To evaluate the results, run
 ```bash
 python3 ./inference.py
 ```
-If you are using different model, you may have to modify a little bit of the code.
+If you are using a different model, you may have to modify a little bit of the code.
 
 
 Comment out anything related to wandb in the code if you do not want to use it to visualize the result.
