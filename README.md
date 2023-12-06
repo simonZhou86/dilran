@@ -1,6 +1,6 @@
 # DILRAN for medical image fusion
 
-''An attention-based Multi-Scale Feature Learning Framework for Multimodal Medical Image Fusion''[paper]((https://arxiv.org/pdf/2212.04661.pdf)
+''An attention-based Multi-Scale Feature Learning Framework for Multimodal Medical Image Fusion'' [Paper link](https://arxiv.org/pdf/2212.04661.pdf)
 
 ## Usage
 
