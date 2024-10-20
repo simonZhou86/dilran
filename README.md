@@ -2,6 +2,7 @@
 
 ''An attention-based Multi-Scale Feature Learning Framework for Multimodal Medical Image Fusion'' [Paper link](https://arxiv.org/pdf/2212.04661.pdf)
 
+The extended version of this work is accepted by IEEE BIBM 2024. The code is based on this repo and will be released at [Here](https://github.com/simonZhou86/en_dran/tree/main)
 ## Usage
 
 You may want to change to your own dataset. If you have a 3-channel PET or SPECT image, you may want to change the dataset_loader.py file
