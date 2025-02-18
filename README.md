@@ -49,4 +49,13 @@ Comment out anything related to wandb in the code if you do not want to use it t
   journal={arXiv preprint arXiv:2212.04661},
   year={2022}
 }
+
+@inproceedings{zhou2024edge,
+  title={Edge-Enhanced Dilated Residual Attention Network for Multimodal Medical Image Fusion},
+  author={Zhou, Meng and Zhang, Yuxuan and Xu, Xiaolan and Wang, Jiayi and Khalvati, Farzad},
+  booktitle={2024 IEEE International Conference on Bioinformatics and Biomedicine (BIBM)},
+  pages={4108--4111},
+  year={2024},
+  organization={IEEE}
+}
 ```
