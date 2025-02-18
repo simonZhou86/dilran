@@ -1,6 +1,6 @@
 # DILRAN for medical image fusion
 
-If you find DILRAN useful for your research and applications, please cite using this BibTeX:
+If you find this work useful for your research and applications, please cite using this BibTeX:
 
 ```bibtex
 @inproceedings{zhou2024edge,
