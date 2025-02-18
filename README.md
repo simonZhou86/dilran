@@ -1,5 +1,19 @@
 # DILRAN for medical image fusion
 
+If you find DILRAN useful for your research and applications, please cite using this BibTeX:
+
+```bibtex
+@inproceedings{zhou2024edge,
+  title={Edge-Enhanced Dilated Residual Attention Network for Multimodal Medical Image Fusion},
+  author={Zhou, Meng and Zhang, Yuxuan and Xu, Xiaolan and Wang, Jiayi and Khalvati, Farzad},
+  booktitle={2024 IEEE International Conference on Bioinformatics and Biomedicine (BIBM)},
+  pages={4108--4111},
+  year={2024},
+  organization={IEEE}
+}
+```
+''Edge-Enhanced Dilated Residual Attention Network for Multimodal Medical Image Fusion'' [Paper link](https://ieeexplore.ieee.org/abstract/document/10821967)
+
 ''An attention-based Multi-Scale Feature Learning Framework for Multimodal Medical Image Fusion'' [Paper link](https://arxiv.org/pdf/2212.04661.pdf)
 
 The extended version of this work is accepted by IEEE BIBM 2024. The code is based on this repo and will be released at [Here](https://github.com/simonZhou86/en_dran/tree/main)
